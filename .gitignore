@@ -3,6 +3,8 @@ client_secret.json
 venv/
 __pycache__/
 channels/*/token.json
+channels/*/instagram.json
+channels/*/ig_state.json
 channels/*/state.json
 channels/*/archive.txt
 channels/*/videos/

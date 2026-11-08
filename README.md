@@ -24,6 +24,7 @@ yt_shorts_multi/
 ├── add_channel.py         create a new channel folder
 ├── download.py            download videos for a channel
 ├── upload.py              write titles, upload, and schedule
+├── instagram.py           queue videos and post them as Instagram Reels on a schedule
 ├── status.py              see all channels at a glance
 ├── common.py              shared code (you don't run this)
 │
@@ -228,6 +229,8 @@ The next video then lands on 17 Oct 6:00 AM. Keep the quote marks and the `+05:3
 | `python add_channel.py NAME [--source URL] [--language Tamil] [--code ta] [--niche TEXT] [--category 24]` | New channel folder |
 | `python download.py NAME [--url URL]` | Download; `--url` overrides `source_url` |
 | `python upload.py NAME [--limit N] [--dry-run]` | Upload and schedule |
+| `python download.py NAME --instagram` | Download, then queue the new videos for Instagram (section 13) |
+| `python instagram.py NAME [--limit N] [--queue-only] [--publish-only] [--dry-run]` | Queue Reels and publish the ones that are due |
 | `python status.py` | Overview of all channels |
 
 You can run these from any folder, the scripts find their own files.
@@ -264,3 +267,89 @@ You can run these from any folder, the scripts find their own files.
 - Test every new channel with `--dry-run`, then `--limit 2`, and check YouTube Studio before uploading hundreds.
 - Titles and emojis are generated from the **original title only**, not from watching the video,
   so skim the first few yourself before trusting a big batch.
+
+---
+
+## 13. Instagram Reels (scheduled)
+
+`instagram.py` takes the videos already in `channels/<name>/videos/`, writes a caption for each with
+Gemini (same language and niche as the YouTube side), gives each one a time slot, and posts it as a
+Reel when that time arrives.
+
+**Important difference from YouTube:** Instagram's API cannot schedule a post for later. YouTube
+publishes by itself at 6 AM / 4 PM, but for Instagram **this script must be running at the posting
+time**. So the PC (or a server) has to be on, and the script runs every 15-30 minutes (below).
+If the PC was off and a post is more than `ig_grace_minutes` late, it moves to the next free slot
+instead of everything posting at once.
+
+### One-time Instagram setup
+
+1. The Instagram account must be a **Professional account** (Business or Creator), linked to a
+   **Facebook Page**. (Instagram app → Settings → Account type and tools.)
+2. Go to https://developers.facebook.com → create an app (type **Business**) and add the
+   **Instagram** product. Add your own Facebook and Instagram accounts as testers/roles. While the app
+   is in **Development mode** it works for your own accounts without app review.
+3. Generate an access token with the permissions `instagram_basic`, `instagram_content_publish`
+   and `pages_read_engagement` (Graph API Explorer is fine). Exchange it for a **long-lived** token.
+   If you use **Instagram Login** instead of Facebook Login, the permissions are
+   `instagram_business_basic` and `instagram_business_content_publish`, and `graph_host` below
+   becomes `graph.instagram.com`.
+4. Find your **Instagram user id** (the numeric id of the Instagram account, not the username).
+5. Create `channels/<name>/instagram.json`:
+   ```
+   {
+     "ig_user_id": "1784xxxxxxxxxxxx",
+     "access_token": "PASTE_LONG_LIVED_TOKEN",
+     "api_version": "v23.0",
+     "graph_host": "graph.facebook.com"
+   }
+   ```
+   `api_version` and `graph_host` are optional. Each channel can have its own Instagram account.
+   This file is in `.gitignore`. Never share it.
+
+Tokens expire (long-lived user tokens last about 60 days). When posting fails with a token error
+(`code 190`), make a new token and replace it in `instagram.json`.
+
+### Everyday use
+
+```
+python download.py main --instagram        download, then queue the new videos for Instagram
+python instagram.py main --dry-run         preview captions and times, changes nothing
+python instagram.py main                   queue anything new AND post whatever is due now
+python status.py                           shows posted / queued / next time per channel
+```
+
+Times come from `ig_slots_ist` in `channel.json` (default `09:00` and `19:00` IST), separate from the
+YouTube `slots_ist`. Each video goes to the next free slot after the previous one.
+
+### Make it run by itself
+
+Run `python instagram.py main` every 30 minutes. It does nothing when no post is due.
+
+Windows (Task Scheduler), change the paths to yours:
+```
+schtasks /create /sc minute /mo 30 /tn "ig-main" /tr "C:\path\to\venv\Scripts\python.exe C:\path\to\auto-yt\instagram.py main"
+```
+Mac / Linux (cron, `crontab -e`):
+```
+*/30 * * * * cd /path/to/auto-yt && ./venv/bin/python instagram.py main
+```
+
+### Settings in `channel.json`
+
+| Field | Default | Meaning |
+|---|---|---|
+| `ig_slots_ist` | `["09:00","19:00"]` | Reel times in India time, 24-hour `HH:MM` |
+| `ig_queue_per_run` | `10` | New videos given a caption and time per run |
+| `ig_max_posts_per_run` | `3` | Most Reels published in one run |
+| `ig_grace_minutes` | `120` | Posts later than this are moved to the next free slot |
+| `ig_share_to_feed` | `true` | Also show the Reel on the profile grid |
+
+### Notes
+
+- Progress is in `channels/<name>/ig_state.json` (queue, posted, failed). Don't delete it or videos can
+  be posted twice. A video that fails 3 times is moved to `failed` and skipped.
+- Instagram allows 100 API-published posts per 24 hours, far above what this schedule uses.
+- Use only videos you own or have permission to post. Reposting other people's videos can get
+  the Instagram account restricted.
+- Reels should be vertical (9:16) MP4 files. Downloaded Shorts already are.

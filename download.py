@@ -19,6 +19,8 @@ def main():
     ap = argparse.ArgumentParser(description="Download Shorts for one channel")
     ap.add_argument("channel")
     ap.add_argument("--url", help="Shorts page to download from (overrides channel.json)")
+    ap.add_argument("--instagram", action="store_true",
+                    help="after downloading, queue the new videos for Instagram Reels")
     args = ap.parse_args()
 
     cfg = load_channel(args.channel)
@@ -55,6 +57,10 @@ def main():
         print(f"Note: {len(leftovers)} leftover partial file(s) in videos/ (names like xxx.f616.mp4). "
               "They are ignored by upload.py and are safe to delete.")
     print("Download finished.")
+
+    if args.instagram:
+        from instagram import run as instagram_run
+        instagram_run(cfg, do_queue=True, do_publish=False)
 
 
 if __name__ == "__main__":

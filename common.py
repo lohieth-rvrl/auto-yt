@@ -28,6 +28,12 @@ DEFAULTS = {
         "gemini-flash-latest",
     ],
     "require_ai": True,                # True = never upload with the old title if Gemini fails
+    # ---- Instagram Reels (used by instagram.py) ----
+    "ig_slots_ist": ["09:00", "19:00"],  # Reel times, 24-hour HH:MM, India time
+    "ig_queue_per_run": 10,            # new videos given a caption and time per run
+    "ig_max_posts_per_run": 3,         # Reels published per run (normally 1 at a time is due)
+    "ig_grace_minutes": 120,           # later than this, a post is moved to the next free slot
+    "ig_share_to_feed": True,          # also show the Reel on the profile grid
 }
 
 PARTIAL = re.compile(r"\.f\d+\.mp4$")  # video-only leftovers such as xxx.f616.mp4

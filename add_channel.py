@@ -53,6 +53,7 @@ def main():
     print(f"  2. python download.py {args.name}     (skip if your videos are already in channels/{args.name}/videos)")
     print(f"  3. python upload.py {args.name} --dry-run   (preview titles and times)")
     print(f"  4. python upload.py {args.name}             (the first run opens a browser: choose THIS channel)")
+    print(f"  5. Optional, Instagram Reels: see README section 13, then  python instagram.py {args.name} --dry-run")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ Usage:
 """
 from common import (fix_console, list_channels, load_channel, load_state,
                     partial_files, video_files)
+from instagram import load_ig_state
 
 
 def main():
@@ -28,6 +29,11 @@ def main():
         print(f"   pending:      {len(pending)}  (about {days} days of posts)")
         print(f"   last slot:    {state['last_slot'] or '(none yet)'}")
         print(f"   logged in:    {'yes' if (cfg['dir'] / 'token.json').exists() else 'no (first upload will open the browser)'}")
+        ig = load_ig_state(cfg)
+        ig_next = min((q["due"] for q in ig["queue"]), default=None)
+        print(f"   instagram:    {len(ig['posted'])} posted, {len(ig['queue'])} queued, "
+              f"next {ig_next or '(nothing queued)'}; "
+              f"{'connected' if (cfg['dir'] / 'instagram.json').exists() else 'not set up (no instagram.json)'}")
         leftovers = partial_files(cfg)
         if leftovers:
             print(f"   leftovers:    {len(leftovers)} partial file(s) in videos/, safe to delete")
