@@ -1,0 +1,8 @@
+.env
+client_secret.json
+venv/
+__pycache__/
+channels/*/token.json
+channels/*/state.json
+channels/*/archive.txt
+channels/*/videos/
